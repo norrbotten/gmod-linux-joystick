@@ -1,0 +1,3 @@
+[submodule "ext/lunar-sol2"]
+	path = ext/lunar-sol2
+	url = https://github.com/norrbotten/lunar-sol2

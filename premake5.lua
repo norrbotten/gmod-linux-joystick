@@ -28,3 +28,11 @@ project "test"
 
 project "module"
     kind "SharedLib"
+    files { "src/module.cpp" }
+    includedirs { "ext/lunar-sol2", "ext/lunar-sol2/sol2/include" }
+    links "pthread"
+
+    targetprefix "gmcl_"
+    targetname "joystick"
+    targetsuffix "_linux64"
+    targetextension ".dll"

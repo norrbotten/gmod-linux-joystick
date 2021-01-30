@@ -6,14 +6,17 @@
 #include <thread>
 #include <vector>
 
+#include <fcntl.h>
 #include <linux/joystick.h>
+#include <unistd.h>
 
 namespace JS {
 
     class JoystickState {
     public:
         explicit JoystickState(const std::string& path)
-            : m_device(path, std::ios::binary | std::ios::in) {
+            : m_device(path, std::ios::binary | std::ios::in)
+            , m_path(path) {
         }
 
         bool poll() {
@@ -40,6 +43,48 @@ namespace JS {
             return m_last_event;
         }
 
+        std::string get_name() const {
+            auto fd = open(m_path.c_str(), O_RDONLY);
+            if (fd < 0)
+                return "Generic Joystick";
+
+            char buf[256] = {0};
+            if (ioctl(fd, JSIOCGNAME(sizeof(buf)), buf) != -1) {
+                close(fd);
+                return std::string(buf);
+            }
+
+            return "Generic Joystick";
+        }
+
+        __u8 num_axes() const {
+            auto fd = open(m_path.c_str(), O_RDONLY);
+            if (fd < 0)
+                return 0;
+
+            __u8 num;
+            if (ioctl(fd, JSIOCGAXES, &num) != -1) {
+                close(fd);
+                return num;
+            }
+
+            return 0;
+        }
+
+        __u8 num_buttons() const {
+            auto fd = open(m_path.c_str(), O_RDONLY);
+            if (fd < 0)
+                return 0;
+
+            __u8 num;
+            if (ioctl(fd, JSIOCGBUTTONS, &num) != -1) {
+                close(fd);
+                return num;
+            }
+
+            return 0;
+        }
+
     private:
         void handle_event(const js_event& evnt) {
             m_last_event = evnt;
@@ -53,8 +98,10 @@ namespace JS {
 
     private:
         std::fstream m_device;
-        __s16        m_btn_state[256]  = {0};
-        __s16        m_axis_state[256] = {0};
+        std::string  m_path;
+
+        __s16 m_btn_state[256]  = {0};
+        __s16 m_axis_state[256] = {0};
 
         js_event m_last_event;
     };
@@ -100,6 +147,9 @@ namespace JS {
         }
 
         const JoystickState* get_joy(std::size_t i) const {
+            if (i >= m_joys.size())
+                return nullptr;
+
             return &m_joys.at(i);
         }
 
